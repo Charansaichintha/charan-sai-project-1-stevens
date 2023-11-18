@@ -1,0 +1,269 @@
+On this assignment you will implement a test harness, writing tests for several programs. Along the way we’ll learn how to use git for versional control and GitHub Actions for continuous integration (CI).
+
+Testing is a key component in getting any program to work. So far in the course we have typically written the tests for you; in this assignment you’ll learn how to build a test harness yourself.
+
+There are many kinds of testing; we’ll be working with integration tests: for a given program, we’ll give an input and expect certain output.
+
+Programs to test
+You’ll write three programs to test. Two we will prescribe; one you will choose yourself.
+
+Program #1: wc
+The first program you’ll right is called wc, which stands for “word count”. wc is a standard utility on Unix systems: when given a file, wc tells you the number of characters, words, and lines in that file.
+
+Here’s an example interaction:
+
+$ cat foo
+hi
+bye
+
+bye for real
+$ wc foo
+       4       5      21 foo
+$ cat foo | wc
+       4       5      21
+Here cat foo shows the contents of the file foo. Running wc foo shows us there are four lines, five words, and twenty one characters in the file foo. Running cat foo | wc puts the contents of foo on STDIN for wc. Notice that we get the same results, but not the filename.
+
+Your job is to write a similar utility in Python. By default, you must support the interaction above. Making wc more complex is one possible extension.
+
+Program #2: gron
+The second program you’ll write is gron, a tool for working with JSON. gron is a less common command, but is a popular open source tool Links to an external site..
+
+Here’s an interaction with gron:
+
+$ cat eg.json 
+{"menu": {
+  "id": "file",
+  "value": "File",
+  "popup": {
+    "menuitem": [
+      {"value": "New", "onclick": "CreateNewDoc()"},
+      {"value": "Open", "onclick": "OpenDoc()"},
+      {"value": "Close", "onclick": "CloseDoc()"}
+    ]
+  }
+}}
+$ gron eg.json 
+json = {};
+json.menu = {};
+json.menu.id = "file";
+json.menu.popup = {};
+json.menu.popup.menuitem = [];
+json.menu.popup.menuitem[0] = {};
+json.menu.popup.menuitem[0].onclick = "CreateNewDoc()";
+json.menu.popup.menuitem[0].value = "New";
+json.menu.popup.menuitem[1] = {};
+json.menu.popup.menuitem[1].onclick = "OpenDoc()";
+json.menu.popup.menuitem[1].value = "Open";
+json.menu.popup.menuitem[2] = {};
+json.menu.popup.menuitem[2].onclick = "CloseDoc()";
+json.menu.popup.menuitem[2].value = "Close";
+json.menu.value = "File";
+$ cat eg.json | gron
+json = {};
+json.menu = {};
+json.menu.id = "file";
+json.menu.popup = {};
+json.menu.popup.menuitem = [];
+json.menu.popup.menuitem[0] = {};
+json.menu.popup.menuitem[0].onclick = "CreateNewDoc()";
+json.menu.popup.menuitem[0].value = "New";
+json.menu.popup.menuitem[1] = {};
+json.menu.popup.menuitem[1].onclick = "OpenDoc()";
+json.menu.popup.menuitem[1].value = "Open";
+json.menu.popup.menuitem[2] = {};
+json.menu.popup.menuitem[2].onclick = "CloseDoc()";
+json.menu.popup.menuitem[2].value = "Close";
+json.menu.value = "File";
+Notice how gron “flattens” the path to every part of the JSON. You’ll want to use the Python json module Links to an external site.. Just like for wc, you should be able to work with STDIN or a file given as part of the arguments.
+
+Program #3: your choice!
+You get to choose what the third program is. It should be something that (a) runs on the command line, (b) is non-trivial/has some utility, and (c) takes less than 200 (semantic, non-blank) lines of Python to write. If you’re stuck for ideas here are a few:
+
+a utility that loads a comma-separated values (CSV) file and sums particular columns
+
+an ungron utility that does the opposite of what gron does (see the --ungron option to gron Links to an external site.)
+
+an unpack utility that takes a JSON file and turns it into a directory structure (see the ffs tool Links to an external site. for an example of what this might look like)
+
+If you’re unsure whether or not something is a good choice for a third utility, please feel free to ask.
+
+Processing command-line options
+Notice that both wc and gron process command-line arguments to determine a file to read from, using STDIN if none is provided. The argparse module Links to an external site. is the standard way to do that in Python. We will go over the basics in class.
+
+Exit status
+Every process on a Unix system has an “exit status”. That status is 0 when the command ran successfully; it’s non-zero when there was some kind of error. Your programs should adopt this practice: if everything worked correctly, exit with status 0 (using sys.exit Links to an external site.); if something went wrong (e.g., gron couldn’t parse JSON or a file you needed didn’t exist), exit with a non-zero status.
+
+Testing your programs
+In addition to writing the programs above, you must write tests for these programs and a test harness to run those tests. Our tests will be data driven, that is, the actual tests will be specified by data files, not code.
+
+In our framework, a test is a pair of files: an input file and an expected output file. When you give the input file to the program—either on STDIN or as an argument to the commmand—the program produces some output. To pass the test, that output should be character-for-character/byte-for-byte identical with the expected output and the command should exit with status 0.
+
+Test harness
+Writing tests amounts to writing the data files for input and output. To run tests, you’ll need a harness that runs the right programs on the right inputs. We’ll use filenames to figure out which tests to run.
+
+When you run test.py, it should look in the test/ directory for tests ending in .in. Per the test format, this file should have a name like PROG.NAME.in.
+
+Your test harness should identify PROG and run it on that input on STDIN, capturing the output of the command. (Check out the subprocess module Links to an external site..) If PROG.NAME.out exists, you should compare the output to the contents of this file—they should be byte-for-byte equal. If not, that test failed.
+
+Then, your test harness should run PROG again on that input, but this time as a command-line argument. Just as before, if PROG.NAME.out exists, you should compare the output and fail the test case if it doesn’t match.
+
+If running PROG on the input produces a non-zero exit status, that test failed.
+
+Your test harness should report a summary of its results, like so:
+
+$ ./test.py 
+FAIL: gron basic failed (TestResult.OutputMismatch)
+      expected:
+wrong
+
+           got:
+json = {};
+json.hi = 5
+
+FAIL: gron basic failed in argument mode (TestResult.OutputMismatch)
+      expected:
+wrong
+
+           got:
+json = {};
+json.hi = 5
+
+FAIL: wc err failed (TestResult.OutputMismatch)
+      expected:
+foo
+
+           got:
+       1       2      14
+
+FAIL: wc err failed in argument mode (TestResult.OutputMismatch)
+      expected:
+foo
+
+           got:
+       1       2      14
+
+
+OK: 2
+output mismatch: 4
+total: 6
+The exact format doesn’t matter, but it must include the following information:
+
+Which tests failed.
+Why they failed.
+A summary of each kind of result received.
+If any test failed for any reason, your test.py should exit with a non-zero exit status.
+
+Running tests in CI
+Your code should run its tests on every commit using GitHub Actions Links to an external site.. You should create a workflow file in .github/workflows/test.yaml that runs the test.py, reporting the build as “green” or “successful” when all tests pass and as “red” or “failing” otherwise.
+
+Directory layout and test format
+You must work in a public GitHub repository. Your repo should have the following structure:
+
+/
+  README.md       # description of your project
+  test.py         # this is the test harness
+  prog/           
+    wc.py         # this is your wc implementation
+    gron.py       # this is your gron implementation
+    ...           # your third program will also go here; give it a sensible name
+  test/
+    PROG.NAME.in  # input for test case NAME on program PROG
+    PROG.NAME.out # expected output for test case NAME on program PROG
+    ...
+  .github/
+    workflows/
+      test.yaml   # your CI configuration
+Here PROG is one of our three programs: wc, gron, or your custom program. It should have the same name as the Python file in prog/, but without the .py suffix.
+
+Here NAME is the testcase name. It should be a non-empty sequence of non-. characters.
+
+Extensions
+In addition to the above, you must implement three extensions. We offer a list of possible extensions below; the list is not exhaustive, but to get credit for an extension you came up with, you must check with Prof. Greenberg first.
+
+More advanced wc: multiple files
+The real wc utility lets you specify multiple files, where it will print a total:
+
+$ wc false.json list.json 
+       1       1       6 false.json
+       1       1      16 list.json
+       2       2      22 total
+Support this behavior and write tests to make use of this feature in a non-trivial way.
+
+More advanced wc: flags to control output
+The real wc utility offers flags to control the information shown. wc -l counts only lines; wc -w counts only words; wc -c counts only characters. You can combine flags:
+
+$ wc -l foo 
+       4 foo
+$ wc -lw foo 
+       4       5 foo
+Support this behavior and write tests to make use of this feature in a non-trivial way.
+
+More advanced gron: control the base-object name
+By default, gron uses json as the name of the base object. Add a flag --obj that takes an argument specifying a different base object:
+
+$ gron --obj o eg.json 
+o = {};
+o.menu = {};
+o.menu.id = "file"
+o.menu.value = "File"
+o.menu.popup = {};
+o.menu.popup.menuitem = [];
+o.menu.popup.menuitem[0] = {};
+o.menu.popup.menuitem[0].value = "New"
+o.menu.popup.menuitem[0].onclick = "CreateNewDoc()"
+o.menu.popup.menuitem[1] = {};
+o.menu.popup.menuitem[1].value = "Open"
+o.menu.popup.menuitem[1].onclick = "OpenDoc()"
+o.menu.popup.menuitem[2] = {};
+o.menu.popup.menuitem[2].value = "Close"
+o.menu.popup.menuitem[2].onclick = "CloseDoc()"
+Write tests to make use of this feature in a non-trivial way.
+
+Expected exit status
+Let a test have PROG.NAME.status, a file that should contain a valid exit status (0 through 255). While running on PROG.NAME.in, you should expect the status in PROG.NAME.status, not just 0.
+
+Write tests to make use of this feature in a non-trivial way (i.e., with a status other than 0).
+
+Expected STDERR
+Just as PROG.NAME.out specifies the expected STDOUT, let PROG.NAME.err have the expected output on STDERR. If the STDERR of the actual command doesn’t match, fail the test case.
+
+Write tests to make use of this feature in a non-trivial way (i.e., with both empty and non-empty STDERR and PROG.NAME.err files).
+
+Timeouts
+Support a timeout: if PROG.NAME.timeout exists, it contains a timeout in seconds. If the command runs more than that many seconds, consider the test case failed.
+
+Give clear instructions to the CAs on how to trigger a test failure due to timeouts, telling them what to do and what to expect.
+
+Temporary directories
+Run each command in a fresh temporary directory. (Check out the tempfile module Links to an external site..) Be sure to clean up after yourself!
+
+Indicate to the CAs where they should look in the code to find the creation and cleanup of these temporary directories.
+
+Setup (requires temporary directories)
+If a file named PROG.NAME.zip exists, it creates a new test case, just like PROG.NAME.in. But this test works by unzippig PROG.NAME.zip into the temporary directory created for the test.
+
+Write tests to make use of this feature in a non-trivial way.
+
+README.md
+Your submission should include a file README.md that explains critical information:
+
+your name 
+the URL of your public GitHub repo
+an estimate of how many hours you spent on the project
+a description of how you tested your code
+any bugs or issues you could not resolve
+an example of a difficult issue or bug and how you resolved it
+a list of the three extensions you’ve chosen to implement, with appropriate detail on them for the CAs to evaluate them (e.g., how should they test timeouts, etc.)
+Submission
+You will need to submit just one thing:
+
+a public GitHub repo with your code in it (which you can submit directly to GradeScope)
+Make sure your repo is public or we will not be able to grade it.
+
+How will you be graded?
+Your grade will be based on:
+
+30% baseline behavior
+30% your README.md’s thoroughness and accuracy
+30% extensions (10% each)
+10% your CI being running all tests and green at the time of submission

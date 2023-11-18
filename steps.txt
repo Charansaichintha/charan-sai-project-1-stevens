@@ -1,0 +1,6 @@
+Here is the test run of the required codes:
+1. Each program supports pipelining and STDIN command line argument
+2. Each program will give exit code 0 for successful execution and n number for error
+3. first program implementation of wc command
+4. second program implementation of gron command
+5. third program sum of csv columns
