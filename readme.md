@@ -1,5 +1,5 @@
 Name: Charan Sai Chintha
-Stevens login:
+Stevens login:cchintha@stevens.edu
 
 GITHUB URL: https://github.com/Charansaichintha/charan-sai-project-1-stevens/tree/main
 
